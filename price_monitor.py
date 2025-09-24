@@ -2,7 +2,8 @@ import os
 import requests
 from decimal import Decimal
 from datetime import datetime, timezone
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
+from collections import defaultdict
 from supabase import ClientOptions, create_client, Client
 from schemas import PriceLevel, Alert, PriceData
 
@@ -20,9 +21,19 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptio
 class PriceMonitor:
     def __init__(self):
         self.binance_api_url = BINANCE_API_URL
+        self.price_cache: Dict[str, Decimal] = {}
+        self.cache_timestamp: Dict[str, datetime] = {}
+        self.cache_ttl_seconds = 30  # Cache prices for 30 seconds
     
     def fetch_price(self, symbol: str) -> Optional[Decimal]:
-        """Fetch current price from Binance API"""
+        """Fetch current price from Binance API with caching"""
+        # Check cache first
+        now = datetime.now(timezone.utc)
+        if (symbol in self.price_cache and 
+            symbol in self.cache_timestamp and 
+            (now - self.cache_timestamp[symbol]).total_seconds() < self.cache_ttl_seconds):
+            return self.price_cache[symbol]
+        
         try:
             url = f"{self.binance_api_url}/ticker/price"
             params = {"symbol": symbol}
@@ -30,10 +41,47 @@ class PriceMonitor:
             response.raise_for_status()
             
             data = response.json()
-            return Decimal(data["price"])
+            price = Decimal(data["price"])
+            
+            # Update cache
+            self.price_cache[symbol] = price
+            self.cache_timestamp[symbol] = now
+            
+            return price
         except Exception as e:
             print(f"Error fetching price for {symbol}: {e}")
             return None
+    
+    def fetch_prices_batch(self, symbols: Set[str]) -> Dict[str, Decimal]:
+        """Fetch multiple prices in a single API call"""
+        if not symbols:
+            return {}
+        
+        try:
+            # Use the 24hr ticker endpoint which can return multiple symbols
+            url = f"{self.binance_api_url}/ticker/24hr"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            prices = {}
+            now = datetime.now(timezone.utc)
+            
+            for item in data:
+                symbol = item["symbol"]
+                if symbol in symbols:
+                    price = Decimal(item["lastPrice"])
+                    prices[symbol] = price
+                    
+                    # Update cache
+                    self.price_cache[symbol] = price
+                    self.cache_timestamp[symbol] = now
+            
+            return prices
+        except Exception as e:
+            print(f"Error fetching batch prices: {e}")
+            # Fallback to individual requests
+            return {symbol: self.fetch_price(symbol) for symbol in symbols if self.fetch_price(symbol) is not None}
     
     def get_active_price_levels(self) -> List[PriceLevel]:
         """Get all active price levels from database"""
@@ -95,6 +143,7 @@ class PriceMonitor:
         
         return False
     
+    
     def create_alert(self, price_level: PriceLevel, current_price: Decimal) -> bool:
         """Create alert record in database"""
         try:
@@ -137,14 +186,28 @@ class PriceMonitor:
             return False
     
     def process_price_levels(self) -> int:
-        """Process all active price levels and check for triggers"""
+        """Process all active price levels and check for triggers with batch price fetching"""
         price_levels = self.get_active_price_levels()
         triggered_count = 0
         
+        if not price_levels:
+            print("No active price levels to process")
+            return 0
+        
         print(f"Processing {len(price_levels)} active price levels...")
         
+        # Group price levels by trading pair for batch price fetching
+        levels_by_pair = defaultdict(list)
         for price_level in price_levels:
-            current_price = self.fetch_price(price_level.pair)
+            levels_by_pair[price_level.pair].append(price_level)
+        
+        # Fetch all prices in batch
+        unique_pairs = set(levels_by_pair.keys())
+        prices = self.fetch_prices_batch(unique_pairs)
+        
+        # Process each price level
+        for price_level in price_levels:
+            current_price = prices.get(price_level.pair)
             if current_price is None:
                 print(f"Failed to fetch price for {price_level.pair}")
                 continue
