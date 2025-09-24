@@ -1,0 +1,13 @@
+[project]
+name = "crypto-alerts-backend"
+version = "0.1.0"
+description = "Crypto Price Alert System Backend"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.11.9",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.5",
+    "supabase>=2.9.1",
+    "numpy>=1.24.0",
+]
