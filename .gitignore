@@ -19,3 +19,21 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+
+# Results and reports
+results/
+*.log
+*.csv
+*.png
+*.html
+*.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
