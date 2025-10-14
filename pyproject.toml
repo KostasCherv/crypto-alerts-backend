@@ -10,4 +10,10 @@ dependencies = [
     "requests>=2.32.5",
     "supabase>=2.9.1",
     "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.7.0",
+    "ta-lib>=0.6.7",
+    "seaborn>=0.13.2",
+    "plotly>=6.3.1",
+    "ccxt>=4.0.0",
 ]

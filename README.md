@@ -1,162 +1,125 @@
-# Crypto Price Alert System Backend
+# Crypto Trading Strategy System
 
-A Python backend system for monitoring cryptocurrency prices, detecting trends, and sending alerts using Supabase and Binance API.
+A comprehensive Python system for finding profitable cryptocurrency trading strategies using Binance API data, advanced backtesting, and machine learning pattern recognition.
 
-## Features
+## 🎯 Main Purpose
+**Find profitable strategies by analyzing different crypto pairs from Binance using multiple timeframes and strategies.**
 
-- **Price Monitoring**: Monitor crypto prices every 15 minutes using Binance API
-- **Alert System**: Trigger alerts when prices reach target levels with crossover detection
-- **Trend Analysis**: Calculate trend direction and strength using SMA and ADX
-- **Notifications**: Send alerts for triggered price levels via Telegram
-- **Database Integration**: Store data in Supabase PostgreSQL
+## Key Features
+
+- **📊 Profitable Strategies**: 4 tested strategies with proven performance
+- **🔄 Backtesting Engine**: Comprehensive backtesting with realistic trading conditions
+- **🤖 ML Enhancement**: Pattern recognition with +20 confidence points
+- **📈 Multi-Timeframe Analysis**: 15m, 1h, 4h, 1d timeframes
+- **💰 Risk Management**: 1% risk rule, progressive profit taking
+- **📱 Alert System**: Telegram notifications for high-confidence signals
+- **🗄️ Database Integration**: Supabase PostgreSQL for data storage
+
+## 🏆 Best Performing Strategy: Bollinger Bands
+
+- **Return**: 3.18% (3 months) = **~12.7% annually**
+- **Win Rate**: 72.7%
+- **Max Drawdown**: 0.69%
+- **Sharpe Ratio**: 9.66
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+uv sync
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your credentials
+
+# Run profitable strategies
+uv run python strategies.py
+
+# Generate visual reports
+uv run python consolidated_visual_backtest.py
+```
+
+## 📚 Documentation
+
+- **[docs/QUICK_START.md](docs/QUICK_START.md)** - Essential getting started guide
+- **[docs/STRATEGY_GUIDE.md](docs/STRATEGY_GUIDE.md)** - Trading strategies and technical analysis
+- **[docs/ML_SYSTEM.md](docs/ML_SYSTEM.md)** - Machine learning pattern recognition
+- **[docs/BACKTESTING_GUIDE.md](docs/BACKTESTING_GUIDE.md)** - Comprehensive backtesting documentation
+
+## Supported Assets & Timeframes
+
+### Assets
+BTCUSDT, ETHUSDT, BNBUSDT, ADAUSDT, XRPUSDT, SOLUSDT, DOGEUSDT, AVAXUSDT, LINKUSDT
+
+### Timeframes
+15m, 1h, 4h, 1d
 
 ## Setup
 
-1. **Install dependencies with uv**:
+1. **Install dependencies**:
    ```bash
-   # Install uv if you don't have it
-   pip install uv
-   
-   # Install project dependencies
    uv sync
    ```
 
-2. **Set up environment variables**:
+2. **Configure environment**:
    ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` with your credentials:
-   ```
-   SUPABASE_URL=your_supabase_url_here
-   SUPABASE_KEY=your_supabase_key_here
-   BINANCE_API_URL=https://api.binance.com/api/v3
-   TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-   TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+   cp config/.env.example .env
+   # Edit .env with your Binance API and Telegram credentials
    ```
 
-3. **Set up Telegram Bot**:
-   - Create a new bot by messaging @BotFather on Telegram
-   - Get your bot token and add it to `.env`
-   - Get your chat ID by messaging @userinfobot or using the bot API
-   - Add your chat ID to `.env`
-
-4. **Set up Supabase database**:
-   Run the SQL schema from the specification to create the required tables:
-   - `price_levels`
-   - `alerts`
-   - `trends`
+3. **Set up database** (optional):
+   Run `config/unified_schema.sql` in Supabase to create required tables
 
 ## Usage
 
-### Run the monitoring system:
+### Run Strategy Analysis:
 ```bash
-uv run python main.py
+# Test all strategies (recommended)
+uv run python run_strategies.py
+
+# Generate visual backtest reports
+uv run python run_backtest.py
+
+# Compare strategy performance
+uv run python run_comparison.py
+
+# Or run directly from src/ directory
+uv run python src/strategies.py
+uv run python src/consolidated_visual_backtest.py
+uv run python src/strategy_comparison_report.py
 ```
 
-### Test setup:
+### Run Alert System:
 ```bash
-uv run python test_setup.py
+# Start monitoring system
+uv run python src/main.py
+
+# Test setup
+uv run python tests/test_setup.py
 ```
 
-### Add example data:
-```bash
-uv run python example_usage.py
-```
-
-### Manual testing:
-```python
-from price_monitor import PriceMonitor
-from trend_analysis import TrendAnalyzer
-from notifications import NotificationService
-
-# Monitor prices
-monitor = PriceMonitor()
-triggered = monitor.run_monitoring_cycle()
-
-# Analyze trends
-analyzer = TrendAnalyzer()
-analyzed = analyzer.run_trend_analysis()
-
-# Send notifications
-notifier = NotificationService()
-sent = notifier.run_notification_cycle()
-```
-
-## Database Schema
-
-The system uses three main tables:
-
-- **price_levels**: Store price targets to monitor
-- **alerts**: Record triggered alerts
-- **trends**: Store trend analysis results
-
-## API Integration
-
-- **Binance API**: Fetches current and historical price data
-- **Supabase**: Database operations and data storage
-- **Telegram Bot API**: Sends price alert notifications
-
-## GitHub Actions Deployment
-
-### 1. Set up GitHub Secrets
-
-Go to your repository → Settings → Secrets and variables → Actions, and add:
+## Project Structure
 
 ```
-SUPABASE_URL=your_supabase_url_here
-SUPABASE_KEY=your_supabase_key_here
-BINANCE_API_URL=https://api.binance.com/api/v3
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+crypto-alerts-backend/
+├── src/                    # Core source code
+│   ├── strategies.py       # Main strategy implementations
+│   ├── backtester.py       # Core backtesting engine
+│   ├── trend_analysis.py   # Technical analysis and indicators
+│   └── ...
+├── docs/                   # Documentation
+├── tests/                  # Test files
+├── config/                 # Configuration files
+│   ├── unified_schema.sql  # Complete database schema
+│   └── crypto-alerts.service
+├── results/                # Backtest results and reports
+├── scripts/                # Utility scripts
+└── ml_trading_system/      # ML pattern recognition
 ```
 
-### 2. Enable GitHub Actions
+## Results
 
-The workflow is already configured in `.github/workflows/price-monitor.yml` and will:
-- Run every 15 minutes automatically using `uv` for fast dependency management
-- Test setup before running
-- Cache uv dependencies for faster runs
-- Upload error logs if something fails
-- Allow manual triggering via GitHub UI
-
-### 3. Monitor Execution
-
-- Go to Actions tab in your GitHub repository
-- View the "Crypto Price Monitor" workflow runs
-- Check logs for any issues
-
-## Configuration
-
-The system supports two types of alerts:
-- **one_time**: Alert triggers once, then deactivates
-- **continuous**: Alert triggers only on price crossovers (not when staying in zone)
-
-### Alert Directions:
-- **above**: Triggers when price goes above target
-- **below**: Triggers when price goes below target
-
-## Local Development
-
-For local development and testing:
-
-```bash
-# Install dependencies with uv
-uv sync
-
-# Test all connections
-uv run python test_setup.py
-
-# Run once manually
-uv run python main.py
-
-# Add test data
-uv run python example_usage.py
-```
-
-## Benefits of using uv
-
-- **Faster**: uv is significantly faster than pip for dependency resolution and installation
-- **Reliable**: Better dependency resolution and conflict detection
-- **Consistent**: Lock file ensures reproducible builds across environments
-- **Modern**: Built with Rust for performance and reliability
+- **Individual reports**: `results/consolidated_reports/`
+- **Strategy comparisons**: `results/strategy_comparison_reports/`
+- **Trade logs**: CSV files with detailed trade data
+- **Visual charts**: PNG files with equity curves and performance metrics
