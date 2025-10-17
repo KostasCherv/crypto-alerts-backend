@@ -22,6 +22,7 @@ CREATE TABLE alerts (
   target_price DECIMAL NOT NULL,
   trigger_direction TEXT NOT NULL, -- 'above' or 'below'
   trigger_type TEXT NOT NULL, -- 'one_time' or 'continuous'
+  previous_state TEXT CHECK (previous_state IN ('above', 'below')), -- State before crossover
   triggered_at TIMESTAMP DEFAULT NOW(),
   notified BOOLEAN DEFAULT FALSE
 );

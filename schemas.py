@@ -21,6 +21,7 @@ class Alert(BaseModel):
     target_price: Decimal = Field(..., description="Original target price")
     trigger_direction: str = Field(..., description="'above' or 'below' - direction that triggered the alert")
     trigger_type: str = Field(..., description="'one_time' or 'continuous'")
+    previous_state: Optional[str] = Field(None, description="'above' or 'below' - state before crossover")
     triggered_at: Optional[datetime] = None
     notified: bool = Field(default=False, description="Whether notification was sent")
 

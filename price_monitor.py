@@ -24,6 +24,7 @@ class PriceMonitor:
         self.price_cache: Dict[str, Decimal] = {}
         self.cache_timestamp: Dict[str, datetime] = {}
         self.cache_ttl_seconds = 30  # Cache prices for 30 seconds
+        self.price_level_states: Dict[str, str] = {}  # Track previous state for each price level
     
     def fetch_price(self, symbol: str) -> Optional[Decimal]:
         """Fetch current price from Binance API with caching"""
@@ -124,6 +125,10 @@ class PriceMonitor:
         if price_level.trigger_type == "continuous":
             # Check if price condition is met
             if not self.check_price_triggers(price_level, current_price):
+                # Update state even when not triggering
+                current_above_threshold = current_price >= price_level.target_price
+                state_key = f"{price_level.id}_{price_level.pair}"
+                self.price_level_states[state_key] = "above" if current_above_threshold else "below"
                 return False
             
             # Get the last alert for this price level
@@ -133,13 +138,28 @@ class PriceMonitor:
                 # No previous alerts, so this is the first trigger
                 return True
             
-            # Check if this is a crossover (price moved from one side of threshold to the other)
+            # For continuous alerts, we need to check if this is a crossover
+            current_above_threshold = current_price >= price_level.target_price
+            
+            # Use in-memory state tracking if available, otherwise fall back to database
+            state_key = f"{price_level.id}_{price_level.pair}"
+            if state_key in self.price_level_states:
+                last_was_above_threshold = self.price_level_states[state_key] == "above"
+            elif hasattr(last_alert, 'previous_state') and last_alert.previous_state:
+                # Use the stored previous state from database
+                last_was_above_threshold = last_alert.previous_state == "above"
+            else:
+                # Fallback to comparing triggered_price (for backward compatibility)
+                last_was_above_threshold = last_alert.triggered_price >= price_level.target_price
+            
             if price_level.trigger_direction == "above":
-                # Trigger if current price is above target AND last alert was below target
-                return current_price >= price_level.target_price and last_alert.triggered_price < price_level.target_price
+                # For "above" alerts: trigger if current price is above target 
+                # AND the last alert was triggered when price was below target
+                return current_above_threshold and not last_was_above_threshold
             else:  # below
-                # Trigger if current price is below target AND last alert was above target
-                return current_price <= price_level.target_price and last_alert.triggered_price > price_level.target_price
+                # For "below" alerts: trigger if current price is below target 
+                # AND the last alert was triggered when price was above target
+                return not current_above_threshold and last_was_above_threshold
         
         return False
     
@@ -147,6 +167,10 @@ class PriceMonitor:
     def create_alert(self, price_level: PriceLevel, current_price: Decimal) -> bool:
         """Create alert record in database"""
         try:
+            # Determine the previous state for crossover tracking
+            current_above_threshold = current_price >= price_level.target_price
+            previous_state = "below" if current_above_threshold else "above"
+            
             alert_data = {
                 "price_level_id": price_level.id,
                 "pair": price_level.pair,
@@ -154,12 +178,19 @@ class PriceMonitor:
                 "target_price": float(price_level.target_price),
                 "trigger_direction": price_level.trigger_direction,
                 "trigger_type": price_level.trigger_type,
+                "previous_state": previous_state,
                 "triggered_at": datetime.now(timezone.utc).isoformat(),
                 "notified": False
             }
             
             result = supabase.table("alerts").insert(alert_data).execute()
-            return bool(result.data)
+            
+            if result.data:
+                # Update in-memory state tracking
+                state_key = f"{price_level.id}_{price_level.pair}"
+                self.price_level_states[state_key] = "above" if current_above_threshold else "below"
+                return True
+            return False
         except Exception as e:
             print(f"Error creating alert: {e}")
             return False
